@@ -1,0 +1,94 @@
+# steps:
+# Do other steps like checkout, install, compile, etc.
+- uses: MyAlbum/purge-cache@v2
+  with:
+    accessed: true # Purge caches by their last accessed time (default)
+    created: false # Purge caches by their created time (default)
+    max-age: 604800 # Leave only caches accessed in the last 7 days (default)
+# purge-cache
+# This action allows the cache of GitHub Actions 
+# to be automatically purged
+# name: CI
+"on":
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0,12 * * *"
+jobs:
+  build:
+    name: Build and test the action
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v3
+      # http://man7.org/linux/man-pages/man1/date.1.html
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "date=$(/bin/date 
+          -u "+date-%Y-%m-%d-time-%H-%M-%S")" 
+          >> $GITHUB_OUTPUT
+        shell: bash
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json',
+          'package.json') }}-${{ steps.get-date.outputs.date }}
+          restore-keys: |
+            ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json',
+ 'package.json') }}-]
+      - name: Install packages & Build the action
+        run: npm ci
+      # -------- THIS ACTION --------
+      - name: Purge caches
+        uses: ./.
+        with:
+          debug: true
+          created: true
+          accessed: true
+          # 3 days
+          max-age: 259200
+      # -------- THIS ACTION --------
+      - name: Commit & Push changes
+        if: github.event_name == 'push'
+        run: |
+          git config --global user.name github-actions
+          git config --global user.email github-actions@github.com
+          git pull --rebase --autostash
+          git add dist
+          git commit -m "action: build the action" || echo ""
+          git push
+Other options
+Debug
+Output debug data (defaults to false)
+Number of caches
+Skipped caches
+Deleted caches
+steps:
+# Do other steps like checkout, install, compile, etc.
+- uses: MyAlbum/purge-cache@v2
+  with:
+    debug: true # Set to true to output debug info
+steps:
+# Do other steps like checkout, install, compile, etc.
+- uses: MyAlbum/purge-cache@v2
+  with:
+    token: $GITHUBTOKEN # Set a GitHub tokenc
+    
+#  Copyright 2024 Alexander Petree
+# Licensed under the Apache License,
+# Version 2.0; you may 
+# not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#    http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License 
+# is distributed on an 
+# "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS 
+# OF ANY KIND, either express or implied.
+# See the License for the specific
+# language governing permissions and limitations under the License.
